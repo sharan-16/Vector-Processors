@@ -90,6 +90,14 @@ class Core():
         self.SDMEM = sdmem
         self.VDMEM = vdmem
 
+        self.PC = 0
+        self.branch = False
+        self.maskreg = [False]*64
+        self.VLR = 0 #vector length register
+
+        #self.LS_flag = False
+        self.RegW = False
+
         self.RFs = {"SRF": RegisterFile("SRF", 8),
                     "VRF": RegisterFile("VRF", 8, 64)}
         
@@ -104,32 +112,160 @@ class Core():
     def read_RF(self,idx):
         if 'VR' in idx:
             return self.RFs['VRF'].Read(idx.replace('VR',''))
-        else:
+        elif 'SR' in idx:
             return self.RFs['SRF'].Read(idx.replace('SR',''))
+        else: return int(idx)  #for immediate values
+
+    def write_RF(self,idx):
+        if 'VR' in idx:
+            self.RFs['VRF'].Write(idx.replace('VR',''))
+        elif 'SR' in idx:
+            self.RFs['SRF'].Write(idx.replace('SR',''))
         
-    def execute(self,operand1, operand2, opcode):
+    def execute_V(self,operand1, operand2, opcode):
         result=[]
         if (opcode == 'ADDVV'): 
+            self.RegW = True
             for i,j in (operand1, operand2):
                 result.append(i+j)
-
-
+        elif (opcode == 'ADDVS'):  
+            self.RegW = True
+            for i in operand1:
+                result.append(i+operand2)
+        elif (opcode == 'SUBVV'):  
+            self.RegW = True
+            for i,j in (operand1, operand2):
+                result.append(i-j)
+        elif (opcode == 'SUBVS'):  
+            self.RegW = True
+            for i in operand1:
+                result.append(i+operand2)
+        elif (opcode == 'MULVV'):  
+            self.RegW = True
+            for i,j in (operand1, operand2):
+                result.append(i*j)
+        elif (opcode == 'MULVS'):  
+            self.RegW = True
+            for i in operand1:
+                result.append(i*operand2)
+        elif (opcode == 'DIVVV'):  
+            self.RegW = True
+            for i,j in (operand1, operand2):
+                result.append(i/j)
+        elif (opcode == 'MULVS'): 
+            self.RegW = True 
+            for i in operand1:
+                result.append(i/operand2)
+        elif (opcode == 'S__VV'): 
+            for i,j in (operand1, operand2):
+                result.append(i>j)  ## using greater than but not sure what they mean by compare
+            self.maskreg = result
+            return None
+        elif (opcode == 'S__VS'): 
+            for i in operand1:
+                result.append(i>operand2)
+            self.maskreg = result
+            return None
+        elif (opcode == 'LV'):  
+            self.RegW = True
+            for i in range(self.VLR):
+                result.append(self.VDMEM.Read(operand1+i))
+        elif (opcode == 'SV'):
+            for i in range(self.VLR):
+                self.VDMEM.Write(operand1+i)
+            return None
+        elif (opcode == 'LVWS'):  
+            self.RegW = True
+            for i in range(self.VLR):
+                result.append(self.VDMEM.Read(operand1+i*operand2))
+        elif (opcode == 'SVWS'):
+            for i in range(self.VLR):
+                self.VDMEM.Write(operand1+i*operand2)
+            return None
+        elif (opcode == 'LVI'):  
+            self.RegW = True
+            for i in range(self.VLR):
+                result.append(self.VDMEM.Read(operand1+operand2[i]))
+        elif (opcode == 'SVI'):
+            for i in range(self.VLR):
+                self.VDMEM.Write(operand1+operand2[i])
+                return None
+        return result
+        
+    def execute_S(self,operand1,operand2, opcode):
+        
+        if (opcode == 'CVM'): 
+            self.maskreg = [True]*64
+            return None
+        elif (opcode == 'POP'): 
+            result = sum(self.maskreg)
+        elif (opcode == 'MTCL'): 
+            self.VLR = operand1
+            return None
+        elif (opcode == 'MFCL'): 
+            return self.VLR 
+        elif (opcode == 'LS'):
+            return self.SDMEM.Read(operand1+operand2)
+        elif (opcode == 'SS'):
+            self.SDMEM.Write(operand1+operand2)
+            return None
+        elif (opcode == 'ADD'):
+            self.RegW = True
+            return operand1 + operand2
+        elif (opcode == 'SUB'):  
+            self.RegW = True
+            return operand1 + operand2
+        elif (opcode == 'AND'):  
+            self.RegW = True
+            return operand1 & operand2
+        elif (opcode == 'OR'):  
+            self.RegW = True
+            return operand1 | operand2
+        elif (opcode == 'XOR'):  
+            self.RegW = True
+            return operand1 ^ operand2
+        elif (opcode == 'SLL'):  
+            self.RegW = True
+            return operand1 << operand2
+        elif (opcode == 'SLR'):  
+            self.RegW = True
+            return operand1 >> operand2
+        elif (opcode == 'SRA'):  
+            self.RegW = True
+            pass
+        
 
     def run(self):
         while(True):
-            PC = 0
 
             #instruction fetch and decode
-            instr = self.decode(self.IMEM.read(PC))
+            instr = self.decode(self.IMEM.read(self.PC))
+            opcode = instr['op']
+
+            if ('B__' in opcode ):
+                next_PC = self.PC + self.read_RF(instr['r3']) if (self.read_RF(instr['r1']) > instr.read_RF(instr['r2'])) else self.PC + 1
+                # need to expand to the other six cases
+                continue
+            elif(opcode == 'HALT') : break
+
             #reading the values
             operand1 = self.read_RF(instr['r2'])
             operand2 = self.read_RF(instr['r3'])
             
+            if ('V' in opcode): 
+                result = []
+                result = self.execute_V(operand1,operand2,opcode)
+            else:
+                result = 0
+                result = self.execute_V(operand1,operand2,opcode)
 
-            if(self.instr['op']=='ADDVV'):
-                
-                
-        
+            #write to the register files and clear the flag
+            if(result != None and self.RegW == True): self.write_RF(instr['r1'])
+            self.RegW = False
+
+            #increment the program counter if no exception is encountered
+            self.PC = next_PC
+
 
     def dumpregs(self, iodir):
         for rf in self.RFs.values():
