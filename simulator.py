@@ -42,9 +42,12 @@ class DMEM(object):
             print(self.name, "- ERROR: Couldn't open input file in path:", self.ipfilepath)
 
     def Read(self, idx): # Use this to read from DMEM.
+        if idx < self.size:
+                return self.data[idx]
         pass # Replace this line with your code here.
 
     def Write(self, idx, val): # Use this to write into DMEM.
+        self.data[idx] = val
         pass # Replace this line with your code here.
 
     def dump(self):
