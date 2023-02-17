@@ -123,45 +123,45 @@ class Core():
             self.RFs['SRF'].Write(idx.replace('SR',''))
         
     def execute_V(self,operand1, operand2, opcode):
-        result=[]
+        result=[0]*self.VLR
         if (opcode == 'ADDVV'): 
             self.RegW = True
-            for i,j in (operand1, operand2):
-                result.append(i+j)
+            for i in range(self.VLR):
+                result[i]=((operand1[i]+operand2[i])*self.maskreg[i])
         elif (opcode == 'ADDVS'):  
             self.RegW = True
-            for i in operand1:
-                result.append(i+operand2)
+            for i in range(self.VLR):
+               result[i]=((operand1[i]+operand2)*self.maskreg[i])
         elif (opcode == 'SUBVV'):  
             self.RegW = True
-            for i,j in (operand1, operand2):
-                result.append(i-j)
+            for i in range(self.VLR):
+                result[i]=((operand1[i]-operand2[i])*self.maskreg[i])
         elif (opcode == 'SUBVS'):  
             self.RegW = True
-            for i in operand1:
-                result.append(i+operand2)
+            for i in range(self.VLR):
+               result[i]=((operand1[i]-operand2)*self.maskreg[i])
         elif (opcode == 'MULVV'):  
             self.RegW = True
-            for i,j in (operand1, operand2):
-                result.append(i*j)
+            for i in range(self.VLR):
+               result[i]=((operand1[i]*operand2[i])*self.maskreg[i])
         elif (opcode == 'MULVS'):  
             self.RegW = True
-            for i in operand1:
-                result.append(i*operand2)
+            for i in range(self.VLR):
+               result[i]=((operand1[i]*operand2)*self.maskreg[i])
         elif (opcode == 'DIVVV'):  
             self.RegW = True
-            for i,j in (operand1, operand2):
-                result.append(i/j)
+            for i in range(self.VLR):
+               result[i]=((operand1[i]/operand2[i])*self.maskreg[i])
         elif (opcode == 'MULVS'): 
             self.RegW = True 
-            for i in operand1:
-                result.append(i/operand2)
-        elif (opcode == 'S__VV'): 
+            for i in range(self.VLR):
+               result[i]=((operand1[i]/operand2)*self.maskreg[i])
+        elif (opcode == 'S__VV'): # need to change
             for i,j in (operand1, operand2):
                 result.append(i>j)  ## using greater than but not sure what they mean by compare
             self.maskreg = result
             return None
-        elif (opcode == 'S__VS'): 
+        elif (opcode == 'S__VS'):  # need to change
             for i in operand1:
                 result.append(i>operand2)
             self.maskreg = result
@@ -169,26 +169,26 @@ class Core():
         elif (opcode == 'LV'):  
             self.RegW = True
             for i in range(self.VLR):
-                result.append(self.VDMEM.Read(operand1+i))
+                result[i]=(self.VDMEM.Read(operand1+i))*self.maskreg[i]
         elif (opcode == 'SV'):
             for i in range(self.VLR):
-                self.VDMEM.Write(operand1+i)
+                self.VDMEM.Write((operand1+i)*self.maskreg[i])
             return None
         elif (opcode == 'LVWS'):  
             self.RegW = True
             for i in range(self.VLR):
-                result.append(self.VDMEM.Read(operand1+i*operand2))
+                result[i]=((self.VDMEM.Read(operand1+i*operand2))*self.maskreg[i])
         elif (opcode == 'SVWS'):
             for i in range(self.VLR):
-                self.VDMEM.Write(operand1+i*operand2)
+                self.VDMEM.Write((operand1+i*operand2)*self.maskreg[i])
             return None
         elif (opcode == 'LVI'):  
             self.RegW = True
             for i in range(self.VLR):
-                result.append(self.VDMEM.Read(operand1+operand2[i]))
+                result[i]=(self.VDMEM.Read(operand1+operand2[i])*self.maskreg[i])
         elif (opcode == 'SVI'):
             for i in range(self.VLR):
-                self.VDMEM.Write(operand1+operand2[i])
+                self.VDMEM.Write((operand1+operand2[i])*self.maskreg[i])
                 return None
         return result
         
@@ -198,7 +198,7 @@ class Core():
             self.maskreg = [True]*64
             return None
         elif (opcode == 'POP'): 
-            result = sum(self.maskreg)
+            return sum(self.maskreg)
         elif (opcode == 'MTCL'): 
             self.VLR = operand1
             return None
