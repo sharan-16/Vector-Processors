@@ -103,7 +103,7 @@ class Core():
         
         # Your code here.
         
-    def decode(self):
+    def decode(self, instr):
         format = ["op",'r1','r2','r3']
         instr = instr.split()
         parsed_instr = dict(zip(format,instr))
@@ -308,6 +308,8 @@ class Core():
                 else:
                     result = 0
                     result = self.execute_V(operand1,operand2,opcode)
+
+                next_PC = self.PC + 1
 
             #write to the register files and clear the flag
             if(result != None and self.RegW == True): self.write_RF(instr['r1'])
