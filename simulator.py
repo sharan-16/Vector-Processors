@@ -156,15 +156,11 @@ class Core():
             self.RegW = True 
             for i in range(self.VLR):
                result[i]=((operand1[i]/operand2)*self.maskreg[i])
-        elif (opcode == 'S__VV'): # need to change
-            for i,j in (operand1, operand2):
-                result.append(i>j)  ## using greater than but not sure what they mean by compare
-            self.maskreg = result
+        elif ('S' in opcode and 'VV' in opcode): 
+            self.mask_reg_opVV(opcode,operand1,operand2)
             return None
-        elif (opcode == 'S__VS'):  # need to change
-            for i in operand1:
-                result.append(i>operand2)
-            self.maskreg = result
+        elif ('S' in opcode and 'VS' in opcode):  # need to change
+            self.mask_reg_opVS(opcode,operand1,operand2)
             return None
         elif (opcode == 'LV'):  
             self.RegW = True
@@ -191,6 +187,47 @@ class Core():
                 self.VDMEM.Write((operand1+operand2[i])*self.maskreg[i])
                 return None
         return result
+    
+    def mask_reg_opVV(self, condition, operand1, operand2):
+        if(condition == 'SEQVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]==operand2[i])
+        elif(condition == 'SNEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]!=operand2[i])
+        elif(condition == 'SGTVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]>operand2[i])
+        elif(condition == 'SLTVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]<operand2[i])
+        elif(condition == 'SGEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]>=operand2[i])
+        elif(condition == 'SLEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]<=operand2[i])
+
+    def mask_reg_opVS(self, condition, operand1, operand2):
+        if(condition == 'SEQVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]==operand2)
+        elif(condition == 'SNEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]!=operand2)
+        elif(condition == 'SGTVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]>operand2)
+        elif(condition == 'SLTVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]<operand2)
+        elif(condition == 'SGEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]>=operand2)
+        elif(condition == 'SLEVV'):
+            for i in range(self.VLR):
+                self.maskreg[i] = (operand1[i]<=operand2)
+
         
     def execute_S(self,operand1,operand2, opcode):
         
@@ -234,6 +271,19 @@ class Core():
             self.RegW = True
             pass
         
+    def branch(self, condition, operand1, operand2, operand3):
+        if(condition == 'BEQ'):
+            return(self.PC + operand3 if (operand1 == operand2) else self.PC + 1)
+        elif(condition == 'BNE'):
+            return(self.PC + operand3 if (operand1 != operand2) else self.PC + 1)
+        elif(condition == 'BGT'):
+            return(self.PC + operand3 if (operand1 > operand2) else self.PC + 1)
+        elif(condition == 'BLT'):
+            return(self.PC + operand3 if (operand1 < operand2) else self.PC + 1)
+        elif(condition == 'BGE'):
+            return(self.PC + operand2 if (operand1 >= operand2) else self.PC + 1)
+        elif(condition == 'BLE'):
+            return(self.PC + operand2 if (operand1 <= operand2) else self.PC + 1)
 
     def run(self):
         while(True):
@@ -242,22 +292,22 @@ class Core():
             instr = self.decode(self.IMEM.read(self.PC))
             opcode = instr['op']
 
-            if ('B__' in opcode ):
-                next_PC = self.PC + self.read_RF(instr['r3']) if (self.read_RF(instr['r1']) > instr.read_RF(instr['r2'])) else self.PC + 1
-                # need to expand to the other six cases
-                continue
+            if (opcode.startswith('B')):
+                next_PC = self.branch(opcode,self.read_RF(instr['r1']),self.read_RF(instr['r2']).self.read_RF(instr['r3']))
+                #next_PC = self.PC + self.read_RF(instr['r3']) if (self.read_RF(instr['r1']) > instr.read_RF(instr['r2'])) else self.PC + 1
+                #continue
             elif(opcode == 'HALT') : break
-
-            #reading the values
-            operand1 = self.read_RF(instr['r2'])
-            operand2 = self.read_RF(instr['r3'])
-            
-            if ('V' in opcode): 
-                result = []
-                result = self.execute_V(operand1,operand2,opcode)
             else:
-                result = 0
-                result = self.execute_V(operand1,operand2,opcode)
+                #reading the values
+                operand1 = self.read_RF(instr['r2'])
+                operand2 = self.read_RF(instr['r3'])
+                
+                if ('V' in opcode): 
+                    result = []
+                    result = self.execute_V(operand1,operand2,opcode)
+                else:
+                    result = 0
+                    result = self.execute_V(operand1,operand2,opcode)
 
             #write to the register files and clear the flag
             if(result != None and self.RegW == True): self.write_RF(instr['r1'])
