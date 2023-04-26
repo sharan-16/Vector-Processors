@@ -40,8 +40,9 @@ class arch_state():
 
 
         #WB stage --> udating the busy board, busy lanes and 
+        #clear the busy board --> empty list
         for i in range(0,self.num_lanes):
-            if self.vcomp_exe[i].exe_time == 0:
+            if self.vcomp_exe[i].exe_time[2] == 0:
                 self.busy_lanes[i] = 0
             else:
                 self.busy_lanes = 1
@@ -96,8 +97,8 @@ class arch_state():
     def execute_one_cycle(self):
         #execution stage
         for i in range(0,self.num_lanes):
-            self.vcomp_exe[i].exe_time[2] = self.vcomp_exe[i].exe_time[2] - 1 if self.vcomp_exe[i].exe_time[2] - 1 else 0
-        self.vls_exe[i].exe_time[2] = self.vls_exe[i].exe_time[2] - 1 if self.vls_exe[i].exe_time[2] - 1 else 0
+            self.vcomp_exe[i].exe_time[2] = self.vcomp_exe[i].exe_time[2] - 1 if self.vcomp_exe[i].exe_time[2] - 1 > 0 else 0
+        self.vls_exe[i].exe_time[2] = self.vls_exe[i].exe_time[2] - 1 if self.vls_exe[i].exe_time[2] - 1 > 0 else 0
 
 
 mul_pipe_depth = 1
